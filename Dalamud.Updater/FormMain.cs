@@ -52,7 +52,7 @@ namespace Dalamud.Updater
 
         private readonly DalamudUpdater dalamudUpdater;
 
-        public string windowsTitle = "獭纪委 v" + Assembly.GetExecutingAssembly().GetName().Version;
+        public string windowsTitle = "달라가브KR v" + Assembly.GetExecutingAssembly().GetName().Version;
         #region Oversea Accelerate Helper
         private bool RemoteFileExists(string url)
         {
@@ -123,19 +123,7 @@ namespace Dalamud.Updater
 
         private void CheckUpdate()
         {
-            checkTimes++;
-            if (checkTimes == 8)
-            {
-                MessageBox.Show("点这么多遍干啥？", windowsTitle);
-            }
-            else if (checkTimes == 9)
-            {
-                MessageBox.Show("还点？", windowsTitle);
-            }
-            else if (checkTimes > 10)
-            {
-                MessageBox.Show("有问题你发日志，别搁这瞎几把点了", windowsTitle);
-            }
+            //여러번 업데이트 체크할 때 띄우는 메세지 삭제 =ㅅ=;;        2022-08-08 16:15
             dalamudUpdater.Run();
         }
 
@@ -191,7 +179,7 @@ namespace Dalamud.Updater
                 if (firstHideHint)
                 {
                     firstHideHint = false;
-                    this.DalamudUpdaterIcon.ShowBalloonTip(2000, "自启动成功", "放心，我会在后台偷偷干活的。", ToolTipIcon.Info);
+                    this.DalamudUpdaterIcon.ShowBalloonTip(2000, "자동 실행", "백그라운드에서 자동으로 실행되었습니다.", ToolTipIcon.Info);
                 }
             }
             try
@@ -210,7 +198,7 @@ namespace Dalamud.Updater
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "程序启动版本检查失败",
+                MessageBox.Show(ex.Message, "버전 확인에 실패했습니다.",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -224,28 +212,28 @@ namespace Dalamud.Updater
             switch (value)
             {
                 case DalamudUpdater.DownloadState.Failed:
-                    MessageBox.Show("更新Dalamud失败", windowsTitle, MessageBoxButtons.YesNo);
-                    setStatus("更新Dalamud失败");
+                    MessageBox.Show("달라가브 업데이트 실패", windowsTitle, MessageBoxButtons.YesNo);
+                    setStatus("달라가브 업데이트 실패");
                     break;
                 case DalamudUpdater.DownloadState.Unknown:
-                    setStatus("未知错误");
+                    setStatus("알수없는 오류");
                     break;
                 case DalamudUpdater.DownloadState.NoIntegrity:
-                    setStatus("卫月与游戏不兼容");
+                    setStatus("버전 미호환");
                     break;
                 case DalamudUpdater.DownloadState.Done:
                     SetDalamudVersion();
-                    setStatus("更新成功");
+                    setStatus("달라가브 업데이트 성공");
                     break;
                 case DalamudUpdater.DownloadState.Checking:
-                    setStatus("检查更新中...");
+                    setStatus("업데이트 체크중...");
                     break;
             }
         }
 
         public void SetDalamudVersion()
         {
-            var verStr = string.Format("卫月版本 : {0}", getVersion());
+            var verStr = string.Format("달라가브KR : {0}", getVersion());
             if (this.labelVersion.InvokeRequired)
             {
                 Action<string> actionDelegate = (x) => { labelVersion.Text = x; };
@@ -334,10 +322,13 @@ namespace Dalamud.Updater
                 {
                     try
                     {
-                        var newPidList = Process.GetProcessesByName("ffxiv_dx11").Where(process =>
+                        /*var newPidList = Process.GetProcessesByName("ffxiv_dx11").Where(process =>
                         {
                             return !process.MainWindowTitle.Contains("FINAL FANTASY XIV");
-                        }).ToList().ConvertAll(process => process.Id.ToString()).ToArray();
+                        }).ToList().ConvertAll(process => process.Id.ToString()).ToArray();*/
+                        // 한국 클라이언트 PID를 찾을 수 없는 오류 수정. 원리는 모름 2022-08-08 16:19
+                        var newPidList = Array.ConvertAll(Process.GetProcessesByName("ffxiv_dx11"), process => process.Id.ToString());
+
                         var newHash = String.Join(", ", newPidList).GetHashCode();
                         var oldPidList = this.comboBoxFFXIV.Items.Cast<Object>().Select(item => item.ToString()).ToArray();
                         var oldHash = String.Join(", ", oldPidList).GetHashCode();
@@ -360,7 +351,7 @@ namespace Dalamud.Updater
                                             var pid = int.Parse(pidStr);
                                             if (this.Inject(pid, (int)this.injectDelaySeconds * 1000))
                                             {
-                                                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "帮你注入了", $"帮你注入了进程{pid}，不用谢。", ToolTipIcon.Info);
+                                                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "자동 Inject", $"프로세스 ID : {pid}，자동적용에 성공했습니다.", ToolTipIcon.Info);
                                             }
                                         }
                                     }
@@ -404,7 +395,7 @@ namespace Dalamud.Updater
             if (firstHideHint)
             {
                 firstHideHint = false;
-                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "小玩意挺会藏", "哎我藏起来了，单击托盘图标呼出程序界面。", ToolTipIcon.Info);
+                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "프로그램 최소화", "메뉴는 트레이아이콘에서 선택해 주세요.", ToolTipIcon.Info);
             }
         }
 
@@ -594,7 +585,7 @@ namespace Dalamud.Updater
                 DefaultPluginDirectory = Path.Combine(xivlauncherDir, "devPlugins"),
                 AssetDirectory = this.dalamudUpdater.AssetDirectory.FullName,
                 GameVersion = gameVerStr,
-                Language = "4",
+                Language = "1", //기존의 4는 중국클라이언트 전용. Dalamud 소스코드 확인 필요. 원리모름 2022-08-08 16:21
                 OptOutMbCollection = false,
                 GlobalAccelerate = this.checkBoxAcce.Checked,
                 WorkingDirectory = dalamudPath,
@@ -647,7 +638,7 @@ namespace Dalamud.Updater
             {
                 return false;
             }
-            DetectSomeShit(process);
+            //DetectSomeShit(process);          지워도 된다고함 2022-08-08 16:23
             //var dalamudStartInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(GeneratingDalamudStartInfo(process)));
             //var startInfo = new ProcessStartInfo(injectorFile, $"{pid} {dalamudStartInfo}");
             //startInfo.WorkingDirectory = dalamudPath.FullName;
