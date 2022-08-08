@@ -135,6 +135,8 @@ namespace Dalamud.Updater
             // checkBoxAutoInject
             // 
             this.checkBoxAutoInject.AutoSize = true;
+            this.checkBoxAutoInject.Checked = true;
+            this.checkBoxAutoInject.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBoxAutoInject.Location = new System.Drawing.Point(182, 112);
             this.checkBoxAutoInject.Name = "checkBoxAutoInject";
             this.checkBoxAutoInject.Size = new System.Drawing.Size(77, 19);
@@ -216,6 +218,7 @@ namespace Dalamud.Updater
             // 
             // delayBox
             // 
+            this.delayBox.Enabled = false;
             this.delayBox.Location = new System.Drawing.Point(108, 138);
             this.delayBox.Name = "delayBox";
             this.delayBox.Size = new System.Drawing.Size(104, 23);
@@ -249,11 +252,11 @@ namespace Dalamud.Updater
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft YaHei UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.Crimson;
-            this.label1.Location = new System.Drawing.Point(32, 164);
+            this.label1.Location = new System.Drawing.Point(65, 166);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(195, 17);
+            this.label1.Size = new System.Drawing.Size(147, 17);
             this.label1.TabIndex = 14;
-            this.label1.Text = "자동 적용시 딜레이 1초이상 설정!!";
+            this.label1.Text = "현재는 딜레이 1초로 고정";
             this.toolTip1.SetToolTip(this.label1, "别问了别问了");
             // 
             // FormMain
