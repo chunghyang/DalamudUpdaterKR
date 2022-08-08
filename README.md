@@ -7,3 +7,5 @@ An easy-to-use Dalamud update and injection tool. Only for CN clients. Powered b
 1) DalamudUpdaterKR 빌드
 2) DalamudKR 빌드 → Hooks 폴더에 덮어쓰기
 3) DalamudAssets → XivLaucnher 폴더에 덮어쓰기
+
+https://drive.google.com/file/d/1N6kEwMShDkY0P5U2zCgOw0A36ZHUcVq2/view?usp=sharing
