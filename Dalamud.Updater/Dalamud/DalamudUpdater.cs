@@ -15,7 +15,6 @@ using Newtonsoft.Json;
 using Serilog;
 //using XIVLauncher.Common.PlatformAbstractions;
 using XIVLauncher.Common.Util;
-using Microsoft.VisualBasic.FileIO;
 
 namespace XIVLauncher.Common.Dalamud
 {
