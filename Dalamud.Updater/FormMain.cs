@@ -1,30 +1,22 @@
-using AutoUpdaterDotNET;
-using Dalamud.Updater.Properties;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Text.RegularExpressions;
-using System.IO.Compression;
-using System.Configuration;
-using Newtonsoft.Json.Linq;
-using System.Security.Principal;
+using System.Threading;
+using System.Windows.Forms;
 using System.Xml;
-using XIVLauncher.Common.Dalamud;
-using Serilog.Core;
+using AutoUpdaterDotNET;
+using Newtonsoft.Json;
 using Serilog;
+using Serilog.Core;
 using Serilog.Events;
+using XIVLauncher.Common.Dalamud;
 
 namespace Dalamud.Updater
 {
@@ -36,7 +28,9 @@ namespace Dalamud.Updater
         private bool firstHideHint = true;
         private bool isThreadRunning = true;
         private bool dotnetDownloadFinished = false;
+
         private bool desktopDownloadFinished = false;
+
         //private string dotnetDownloadPath;
         //private string desktopDownloadPath;
         //private DirectoryInfo runtimePath;
@@ -53,14 +47,16 @@ namespace Dalamud.Updater
         private readonly DalamudUpdater dalamudUpdater;
 
         public string windowsTitle = "달라가브KR v" + Assembly.GetExecutingAssembly().GetName().Version;
+
         #region Oversea Accelerate Helper
+
         private bool RemoteFileExists(string url)
         {
             try
             {
-                HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+                var request = WebRequest.Create(url) as HttpWebRequest;
                 request.Method = "HEAD";
-                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+                var response = request.GetResponse() as HttpWebResponse;
                 response.Close();
                 return (response.StatusCode == HttpStatusCode.OK);
             }
@@ -94,8 +90,10 @@ namespace Dalamud.Updater
             {
                 Console.WriteLine("Error reading app settings");
             }
+
             return def;
         }
+
         public static void AddOrUpdateAppSettings(string key, string value)
         {
             try
@@ -110,6 +108,7 @@ namespace Dalamud.Updater
                 {
                     settings[key].Value = value;
                 }
+
                 configFile.Save(ConfigurationSaveMode.Modified);
                 ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
             }
@@ -148,6 +147,7 @@ namespace Dalamud.Updater
                     version = newVersion;
                 }
             }
+
             return version;
         }
 
@@ -171,7 +171,7 @@ namespace Dalamud.Updater
             //labelVersion.Text = string.Format("卫月版本 : {0}", getVersion());
             delayBox.Value = (decimal)this.injectDelaySeconds;
             SetDalamudVersion();
-            string[] strArgs = Environment.GetCommandLineArgs();
+            var strArgs = Environment.GetCommandLineArgs();
             if (strArgs.Length >= 2 && strArgs[1].Equals("-startup"))
             {
                 //this.WindowState = FormWindowState.Minimized;
@@ -182,13 +182,18 @@ namespace Dalamud.Updater
                     this.DalamudUpdaterIcon.ShowBalloonTip(2000, "자동 실행", "백그라운드에서 자동으로 실행되었습니다.", ToolTipIcon.Info);
                 }
             }
+
             try
             {
                 var localVersion = Assembly.GetExecutingAssembly().GetName().Version;
                 var remoteUrl = GetProperUrl(updateUrl);
-                XmlDocument remoteXml = new XmlDocument();
+                var remoteXml = new XmlDocument();
                 remoteXml.Load(remoteUrl);
-                foreach (XmlNode child in remoteXml.SelectNodes("/item/version"))
+
+                var nodes = remoteXml.SelectNodes("/item/version");
+                if (nodes == null) throw new NullReferenceException("/item/version 노드 없음");
+
+                foreach (XmlNode child in nodes)
                 {
                     if (child.InnerText != localVersion.ToString())
                     {
@@ -199,15 +204,15 @@ namespace Dalamud.Updater
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "버전 확인에 실패했습니다.",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
             }
-            dalamudUpdater = new DalamudUpdater(addonDirectory, runtimeDirectory, assetDirectory, configDirectory);
-            dalamudUpdater.Overlay = dalamudLoadingOverlay;
+
+            dalamudUpdater = new DalamudUpdater(addonDirectory, runtimeDirectory, assetDirectory, configDirectory)
+            {
+                Overlay = dalamudLoadingOverlay
+            };
             dalamudUpdater.OnUpdateEvent += DalamudUpdater_OnUpdateEvent;
-
-
-
         }
 
         private void DalamudUpdater_OnUpdateEvent(DalamudUpdater.DownloadState value)
@@ -247,7 +252,9 @@ namespace Dalamud.Updater
                 labelVersion.Text = verStr;
             }
         }
+
         #region init
+
         private static void InitLogging()
         {
             var baseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -264,14 +271,13 @@ namespace Dalamud.Updater
 
 
             Log.Logger = new LoggerConfiguration()
-                //.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose)
-                .WriteTo.Async(a => a.File(logPath))
-                .MinimumLevel.ControlledBy(levelSwitch)
-                .CreateLogger();
+                         //.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose)
+                         .WriteTo.Async(a => a.File(logPath))
+                         .MinimumLevel.ControlledBy(levelSwitch)
+                         .CreateLogger();
         }
-        private void InitializePluginKR()
-        {
-        }
+
+        private void InitializePluginKR() { }
 
         private void InitializeConfig()
         {
@@ -279,14 +285,17 @@ namespace Dalamud.Updater
             {
                 this.checkBoxAutoInject.Checked = true;
             }
+
             if (GetAppSettings("AutoStart", "false") == "true")
             {
                 this.checkBoxAutoStart.Checked = true;
             }
+
             if (GetAppSettings("Accelerate", "false") == "true")
             {
                 this.checkBoxAcce.Checked = true;
             }
+
             var tempInjectDelaySeconds = GetAppSettings("InjectDelaySeconds", "0");
             if (tempInjectDelaySeconds != "0")
             {
@@ -334,22 +343,22 @@ namespace Dalamud.Updater
                             return !process.MainWindowTitle.Contains("FINAL FANTASY XIV");
                         }).ToList().ConvertAll(process => process.Id.ToString()).ToArray();*/
                         // 한국 클라이언트 PID를 찾을 수 없는 오류 수정. 원리는 모름 2022-08-08 16:19
-                        var newPidList = Array.ConvertAll(Process.GetProcessesByName("ffxiv_dx11"), process => process.Id.ToString());
-
-                        var newHash = String.Join(", ", newPidList).GetHashCode();
-                        var oldPidList = this.comboBoxFFXIV.Items.Cast<Object>().Select(item => item.ToString()).ToArray();
-                        var oldHash = String.Join(", ", oldPidList).GetHashCode();
+                        var newPidList = Process.GetProcessesByName("ffxiv_dx11").Select(x => x.Id.ToString()).ToArray();
+                        var newHash = string.Join(", ", newPidList).GetHashCode();
+                        var oldPidList = this.comboBoxFFXIV.Items.Cast<object>().Select(item => item.ToString()).ToArray();
+                        var oldHash = string.Join(", ", oldPidList).GetHashCode();
                         if (oldHash != newHash && this.comboBoxFFXIV.IsHandleCreated)
                         {
                             this.comboBoxFFXIV.Invoke((MethodInvoker)delegate
                             {
                                 // Running on the UI thread
                                 comboBoxFFXIV.Items.Clear();
-                                comboBoxFFXIV.Items.AddRange(newPidList);
+                                comboBoxFFXIV.Items.AddRange(newPidList.Cast<object>().ToArray());
                                 if (newPidList.Length > 0)
                                 {
                                     if (!comboBoxFFXIV.DroppedDown)
                                         this.comboBoxFFXIV.SelectedIndex = 0;
+
                                     if (this.checkBoxAutoInject.Checked)
                                     {
                                         foreach (var pidStr in newPidList)
@@ -366,18 +375,19 @@ namespace Dalamud.Updater
                             });
                         }
                     }
-                    catch
-                    {
+                    catch { }
 
-                    }
                     Thread.Sleep(1000);
                 }
-            });
-            thread.IsBackground = true;
+            })
+            {
+                IsBackground = true
+            };
             thread.Start();
         }
 
         #endregion
+
         private void FormMain_Load(object sender, EventArgs e)
         {
             AutoUpdater.ApplicationExitEvent += AutoUpdater_ApplicationExitEvent;
@@ -386,6 +396,7 @@ namespace Dalamud.Updater
             labelVer.Text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
             CheckUpdate();
         }
+
         private void FormMain_Disposed(object sender, EventArgs e)
         {
             this.isThreadRunning = false;
@@ -421,6 +432,7 @@ namespace Dalamud.Updater
                     this.Show();
                     this.WindowState = FormWindowState.Normal;
                 }
+
                 this.Activate();
             }
         }
@@ -431,6 +443,7 @@ namespace Dalamud.Updater
             if (!this.Visible) this.Visible = true;
             this.Activate();
         }
+
         private void 退出ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.Dispose();
@@ -511,14 +524,14 @@ namespace Dalamud.Updater
                         catch (Exception exception)
                         {
                             MessageBox.Show(exception.Message, exception.GetType().ToString(), MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
+                                            MessageBoxIcon.Error);
                         }
                     }
                 }
                 else
                 {
                     MessageBox.Show(@"没有可用更新，请稍后查看。", @"更新不可用",
-                                   MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             else
@@ -532,8 +545,8 @@ namespace Dalamud.Updater
                 else
                 {
                     MessageBox.Show(args.Error.Message,
-                        args.Error.GetType().ToString(), MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+                                    args.Error.GetType().ToString(), MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
                 }
             }
         }
@@ -552,8 +565,8 @@ namespace Dalamud.Updater
                 if (isInjected(process))
                 {
                     var choice = MessageBox.Show("经检测存在 ffxiv_dx11.exe 进程，更新卫月需要关闭游戏，需要帮您代劳吗？", "关闭游戏",
-                                    MessageBoxButtons.YesNo,
-                                    MessageBoxIcon.Information);
+                                                 MessageBoxButtons.YesNo,
+                                                 MessageBoxIcon.Information);
                     if (choice == DialogResult.Yes)
                     {
                         process.Kill();
@@ -564,13 +577,11 @@ namespace Dalamud.Updater
                     }
                 }
             }
+
             CheckUpdate();
         }
 
-        private void comboBoxFFXIV_Clicked(object sender, EventArgs e)
-        {
-
-        }
+        private void comboBoxFFXIV_Clicked(object sender, EventArgs e) { }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
@@ -614,10 +625,8 @@ namespace Dalamud.Updater
                     }
                 }
             }
-            catch
-            {
+            catch { }
 
-            }
             return false;
         }
 
@@ -633,9 +642,7 @@ namespace Dalamud.Updater
                     }
                 }
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         private bool Inject(int pid, int injectDelay = 0)
@@ -645,6 +652,7 @@ namespace Dalamud.Updater
             {
                 return false;
             }
+
             //DetectSomeShit(process);          지워도 된다고함 2022-08-08 16:23
             //var dalamudStartInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(GeneratingDalamudStartInfo(process)));
             //var startInfo = new ProcessStartInfo(injectorFile, $"{pid} {dalamudStartInfo}");
@@ -658,6 +666,7 @@ namespace Dalamud.Updater
                     return false;
                 }
             }
+
             //return false;
             var dalamudStartInfo = GeneratingDalamudStartInfo(process, Directory.GetParent(dalamudUpdater.Runner.FullName).FullName, injectDelay);
             var environment = new Dictionary<string, string>();
@@ -674,7 +683,7 @@ namespace Dalamud.Updater
         private void ButtonInject_Click(object sender, EventArgs e)
         {
             if (this.comboBoxFFXIV.SelectedItem != null
-                && this.comboBoxFFXIV.SelectedItem.ToString().Length > 0)
+             && this.comboBoxFFXIV.SelectedItem.ToString().Length > 0)
             {
                 var pidStr = this.comboBoxFFXIV.SelectedItem.ToString();
                 if (int.TryParse(pidStr, out var pid))
@@ -697,11 +706,11 @@ namespace Dalamud.Updater
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Error);
             }
-
         }
+
         private void SetAutoRun()
         {
-            string strFilePath = Application.ExecutablePath;
+            var strFilePath = Application.ExecutablePath;
             try
             {
                 SystemHelper.SetAutoRun($"\"{strFilePath}\"" + " -startup", "DalamudAutoInjector", checkBoxAutoStart.Checked);
@@ -746,6 +755,7 @@ namespace Dalamud.Updater
                 this.toolStripProgressBar1.Value = v;
             }
         }
+
         private void setStatus(string v)
         {
             if (toolStripStatusLabel1.Owner.InvokeRequired)
@@ -758,6 +768,7 @@ namespace Dalamud.Updater
                 this.toolStripStatusLabel1.Text = v;
             }
         }
+
         private void setVisible(bool v)
         {
             if (toolStripProgressBar1.Owner.InvokeRequired)

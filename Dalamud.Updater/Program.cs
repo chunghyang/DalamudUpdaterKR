@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Dalamud.Updater
@@ -35,10 +33,14 @@ namespace Dalamud.Updater
                 Application.Exit();
                 return;
             }
+
+#if !DEBUG
             if (ProcessMutexInstance()) {
                 Application.Exit();
                 return;
             }
+#endif
+            
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Form form = new FormMain();
