@@ -42,7 +42,7 @@ namespace Dalamud.Updater
         //private DirectoryInfo runtimePath;
         //private DirectoryInfo[] runtimePaths;
         //private string RuntimeVersion = "5.0.17";
-        private double injectDelaySeconds = 0;
+        private double injectDelaySeconds = 1;
         private DalamudLoadingOverlay dalamudLoadingOverlay;
 
         private readonly DirectoryInfo addonDirectory;
@@ -205,6 +205,9 @@ namespace Dalamud.Updater
             dalamudUpdater = new DalamudUpdater(addonDirectory, runtimeDirectory, assetDirectory, configDirectory);
             dalamudUpdater.Overlay = dalamudLoadingOverlay;
             dalamudUpdater.OnUpdateEvent += DalamudUpdater_OnUpdateEvent;
+
+
+
         }
 
         private void DalamudUpdater_OnUpdateEvent(DalamudUpdater.DownloadState value)
@@ -213,7 +216,7 @@ namespace Dalamud.Updater
             {
                 case DalamudUpdater.DownloadState.Failed:
                     MessageBox.Show("달라가브 업데이트 실패", windowsTitle, MessageBoxButtons.YesNo);
-                    setStatus("달라가브 업데이트 실패");
+                    setStatus("플러그인 파일 확인 요망");
                     break;
                 case DalamudUpdater.DownloadState.Unknown:
                     setStatus("알수없는 오류");
@@ -266,6 +269,10 @@ namespace Dalamud.Updater
                 .MinimumLevel.ControlledBy(levelSwitch)
                 .CreateLogger();
         }
+        private void InitializePluginKR()
+        {
+        }
+
         private void InitializeConfig()
         {
             if (GetAppSettings("AutoInject", "false") == "true")

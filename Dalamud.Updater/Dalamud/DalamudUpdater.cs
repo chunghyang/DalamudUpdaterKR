@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Serilog;
 //using XIVLauncher.Common.PlatformAbstractions;
 using XIVLauncher.Common.Util;
+using Microsoft.VisualBasic.FileIO;
 
 namespace XIVLauncher.Common.Dalamud
 {
@@ -190,6 +191,13 @@ namespace XIVLauncher.Common.Dalamud
             return (versionInfoRelease, versionInfoStaging);
         }
 
+        private async Task UpdateDalamudKR()
+        {
+            //TODO: 플러그인 파일들을 어딘가에 업로드 후 여기서 받아오는 코드 작성 해야함
+            State = DownloadState.Done;
+            return;
+        }
+
         private async Task UpdateDalamud()
         {
             var settings = DalamudSettings.GetSettings(this.configDirectory);
@@ -288,13 +296,13 @@ namespace XIVLauncher.Common.Dalamud
                 return;
             }
 
-            if (!IsIntegrity(currentVersionPath))
-            {
-                Log.Error("[DUPDATE] Integrity check failed after ensurement.");
-
-                State = DownloadState.NoIntegrity;
-                return;
-            }
+            //if (!IsIntegrity(currentVersionPath))
+            //{
+            //    Log.Error("[DUPDATE] Integrity check failed after ensurement.");
+            //
+            //    State = DownloadState.NoIntegrity;
+            //    return;
+            //}
 
             WriteVersionJson(currentVersionPath, versionInfoJson);
 
@@ -403,6 +411,7 @@ namespace XIVLauncher.Common.Dalamud
 
         private async Task DownloadDalamud(DirectoryInfo addonPath, DalamudVersionInfo version)
         {
+            return;
             // Ensure directory exists
             if (!addonPath.Exists)
                 addonPath.Create();
@@ -448,6 +457,7 @@ namespace XIVLauncher.Common.Dalamud
 
         private async Task DownloadRuntime(DirectoryInfo runtimePath, string version)
         {
+            return;
             // Ensure directory exists
             if (!runtimePath.Exists)
             {
