@@ -456,8 +456,8 @@ namespace XIVLauncher.Common.Dalamud
 
         private async Task DownloadRuntime(DirectoryInfo runtimePath, string version)
         {
-            return;
-            // Ensure directory exists
+            if(Directory.Exists("runtime")) return;
+            
             if (!runtimePath.Exists)
             {
                 runtimePath.Create();
@@ -470,6 +470,7 @@ namespace XIVLauncher.Common.Dalamud
 
             var dotnetUrl = string.Format(REMOTE_DOTNET, version);
             var desktopUrl = string.Format(REMOTE_DESKTOP, version);
+            MessageBox.Show(desktopUrl);
             //var dotnetUrl = $"https://dotnetcli.blob.core.windows.net/dotnet/Runtime/{version}/dotnet-runtime-{version}-win-x64.zip";
             //var desktopUrl = $"https://dotnetcli.blob.core.windows.net/dotnet/WindowsDesktop/{version}/windowsdesktop-runtime-{version}-win-x64.zip";
 
