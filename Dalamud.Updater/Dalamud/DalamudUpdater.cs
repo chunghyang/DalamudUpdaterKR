@@ -7,7 +7,6 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Dalamud.Updater;
@@ -42,7 +41,9 @@ namespace XIVLauncher.Common.Dalamud
         private readonly DirectoryInfo addonDirectory;
         private readonly DirectoryInfo runtimeDirectory;
         private readonly DirectoryInfo assetDirectory;
+
         private readonly DirectoryInfo configDirectory;
+
         //private readonly IUniqueIdCache? cache;
         public const string REMOTE_BASE = "https://aonyx.ffxiv.wang/";
         public const string REMOTE_VERSION = REMOTE_BASE + "Dalamud/Release/VersionInfo?track=release";
@@ -51,10 +52,11 @@ namespace XIVLauncher.Common.Dalamud
         private readonly TimeSpan defaultTimeout = TimeSpan.FromMinutes(25);
 
         private DownloadState _state;
+
         public DownloadState State
         {
             get { return _state; }
-            
+
             private set
             {
                 _state = value;
@@ -124,38 +126,40 @@ namespace XIVLauncher.Common.Dalamud
         {
             Overlay.ReportProgress(size, downloaded, progress);
         }
+
         public delegate void UpdateEvent(DownloadState value);
+
         public event UpdateEvent OnUpdateEvent;
         private readonly static object Mutex = new object();
+
         public void Run()
         {
             //lock (Mutex)
             //{
-                this.State = DownloadState.Checking;
-                Log.Information("[DUPDATE] Starting...");
-                Task.Run(async () =>
+            this.State = DownloadState.Checking;
+            Log.Information("[DUPDATE] Starting...");
+            Task.Run(async () =>
+            {
+                const int MAX_TRIES = 3;
+
+                for (var tries = 0; tries < MAX_TRIES; tries++)
                 {
-                    const int MAX_TRIES = 3;
-
-                    for (var tries = 0; tries < MAX_TRIES; tries++)
+                    try
                     {
-                        try
-                        {
-                            await UpdateDalamud().ConfigureAwait(true);
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "[DUPDATE] Update failed, try {TryCnt}/{MaxTries}...", tries, MAX_TRIES);
-                        }
+                        await UpdateDalamud().ConfigureAwait(true);
+                        break;
                     }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "[DUPDATE] Update failed, try {TryCnt}/{MaxTries}...", tries, MAX_TRIES);
+                    }
+                }
 
-                    if (this.State != DownloadState.Done) this.State = DownloadState.Failed;
-                    //Mutex.Close();
-                    OnUpdateEvent?.Invoke(this.State);
-                });
+                if (this.State != DownloadState.Done) this.State = DownloadState.Failed;
+                //Mutex.Close();
+                OnUpdateEvent?.Invoke(this.State);
+            });
             //}
-
         }
 
         private static string GetBetaTrackName(DalamudSettings settings) =>
@@ -280,6 +284,8 @@ namespace XIVLauncher.Common.Dalamud
                         return;
                     }
                 }
+
+                await DownloadAsset(this.assetDirectory).ConfigureAwait(false);
             }
 
             try
@@ -334,8 +340,8 @@ namespace XIVLauncher.Common.Dalamud
             try
             {
                 if (!CanRead(files.First(x => x.Name == "Dalamud.Injector.exe"))
-                    || !CanRead(files.First(x => x.Name == "Dalamud.dll"))
-                    || !CanRead(files.First(x => x.Name == "ImGuiScene.dll")))
+                 || !CanRead(files.First(x => x.Name == "Dalamud.dll"))
+                 || !CanRead(files.First(x => x.Name == "ImGuiScene.dll")))
                 {
                     Log.Error("[DUPDATE] Can't open files for read");
                     return false;
@@ -456,8 +462,8 @@ namespace XIVLauncher.Common.Dalamud
 
         private async Task DownloadRuntime(DirectoryInfo runtimePath, string version)
         {
-            if(Directory.Exists("runtime")) return;
-            
+            if (Directory.Exists("runtime")) return;
+
             if (!runtimePath.Exists)
             {
                 runtimePath.Create();
@@ -470,7 +476,6 @@ namespace XIVLauncher.Common.Dalamud
 
             var dotnetUrl = string.Format(REMOTE_DOTNET, version);
             var desktopUrl = string.Format(REMOTE_DESKTOP, version);
-            MessageBox.Show(desktopUrl);
             //var dotnetUrl = $"https://dotnetcli.blob.core.windows.net/dotnet/Runtime/{version}/dotnet-runtime-{version}-win-x64.zip";
             //var desktopUrl = $"https://dotnetcli.blob.core.windows.net/dotnet/WindowsDesktop/{version}/windowsdesktop-runtime-{version}-win-x64.zip";
 
@@ -484,6 +489,41 @@ namespace XIVLauncher.Common.Dalamud
 
             await this.DownloadFile(desktopUrl, downloadPath, this.defaultTimeout).ConfigureAwait(false);
             ZipFile.ExtractToDirectory(downloadPath, runtimePath.FullName);
+
+            File.Delete(downloadPath);
+        }
+
+        private async Task DownloadAsset(DirectoryInfo assetPath)
+        {
+            if (Directory.Exists($"{assetPath.FullName}/32/UIRes") && File.Exists($"{assetPath.FullName}/32/UIRes/NotoSansKR-Regular.otf")) return;
+
+            var downloadPath = GetTempFileName();
+
+            if (File.Exists(downloadPath))
+                File.Delete(downloadPath);
+
+            await DownloadFile("https://github.com/chunghyang/DalamudAssetsKR/releases/download/devRelease/dalamudAssets.zip", downloadPath, this.defaultTimeout).ConfigureAwait(false);
+           
+            var archive = ZipFile.Open(downloadPath, ZipArchiveMode.Read);
+            var di = Directory.CreateDirectory(assetPath.Parent.FullName);
+            var destinationDirectoryFullPath = di.FullName;
+
+            foreach (var file in archive.Entries)
+            {
+                var completeFileName = Path.GetFullPath(Path.Combine(destinationDirectoryFullPath, file.FullName));
+
+                if (!completeFileName.StartsWith(destinationDirectoryFullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new IOException("Trying to extract file outside of destination directory. See this link for more info: https://snyk.io/research/zip-slip-vulnerability");
+                }
+
+                if (file.Name == "")
+                { // Assuming Empty for Directory
+                    Directory.CreateDirectory(Path.GetDirectoryName(completeFileName));
+                    continue;
+                }
+                file.ExtractToFile(completeFileName, true);
+            }
 
             File.Delete(downloadPath);
         }

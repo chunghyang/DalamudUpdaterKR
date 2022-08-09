@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using Dalamud.Updater.Properties;
 using Microsoft.Win32;
@@ -109,5 +110,7 @@ namespace Dalamud.Updater
             if (tarProcess.ExitCode != 0)
                 throw new FormatException($"Could not un7z.\n{outputLines}");
         }
+
+
     }
 }
