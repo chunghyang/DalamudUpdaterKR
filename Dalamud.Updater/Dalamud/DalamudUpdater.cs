@@ -431,7 +431,7 @@ namespace XIVLauncher.Common.Dalamud
             if (File.Exists(downloadPath))
                 File.Delete(downloadPath);
 
-            await this.DownloadFile(version.DownloadUrl, downloadPath, this.defaultTimeout).ConfigureAwait(false);
+            await this.DownloadFile(version.DownloadUrl, downloadPath).ConfigureAwait(false);
             SystemHelper.Un7za(downloadPath, addonPath.FullName);
             //ZipFile.ExtractToDirectory(downloadPath, addonPath.FullName);
 
@@ -484,10 +484,10 @@ namespace XIVLauncher.Common.Dalamud
             if (File.Exists(downloadPath))
                 File.Delete(downloadPath);
 
-            await this.DownloadFile(dotnetUrl, downloadPath, this.defaultTimeout).ConfigureAwait(false);
+            await this.DownloadFile(dotnetUrl, downloadPath).ConfigureAwait(false);
             ZipFile.ExtractToDirectory(downloadPath, runtimePath.FullName);
 
-            await this.DownloadFile(desktopUrl, downloadPath, this.defaultTimeout).ConfigureAwait(false);
+            await this.DownloadFile(desktopUrl, downloadPath).ConfigureAwait(false);
             ZipFile.ExtractToDirectory(downloadPath, runtimePath.FullName);
 
             File.Delete(downloadPath);
@@ -502,7 +502,7 @@ namespace XIVLauncher.Common.Dalamud
             if (File.Exists(downloadPath))
                 File.Delete(downloadPath);
 
-            await DownloadFile("https://github.com/chunghyang/DalamudAssetsKR/releases/download/devRelease/dalamudAssets.zip", downloadPath, this.defaultTimeout).ConfigureAwait(false);
+            await DownloadFile("https://github.com/chunghyang/DalamudAssetsKR/releases/download/devRelease/dalamudAssets.zip", downloadPath).ConfigureAwait(false);
            
             var archive = ZipFile.Open(downloadPath, ZipArchiveMode.Read);
             var di = Directory.CreateDirectory(assetPath.Parent.FullName);
@@ -528,7 +528,7 @@ namespace XIVLauncher.Common.Dalamud
             File.Delete(downloadPath);
         }
 
-        private async Task DownloadFile(string url, string path, TimeSpan timeout)
+        private async Task DownloadFile(string url, string path)
         {
             using var downloader = new HttpClientDownloadWithProgress(url, path);
             downloader.ProgressChanged += this.ReportOverlayProgress;
