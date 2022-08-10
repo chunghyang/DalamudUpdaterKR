@@ -391,6 +391,8 @@ namespace Dalamud.Updater
         private void FormMain_Load(object sender, EventArgs e)
         {
             AutoUpdater.ApplicationExitEvent += AutoUpdater_ApplicationExitEvent;
+            
+           
             AutoUpdater.CheckForUpdateEvent += AutoUpdaterOnCheckForUpdateEvent;
             AutoUpdater.InstalledVersion = GetUpdaterVersion();
             labelVer.Text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
@@ -552,8 +554,11 @@ namespace Dalamud.Updater
         }
 
         private void AutoUpdaterOnCheckForUpdateEvent(UpdateInfoEventArgs args)
-        {
-            OnCheckForUpdateEvent(args);
+        { 
+            //TODO: 업데이트 꺼놨는데 나중에 우리가 업데이트할때 이이벤트 참고하여 실행해야됨.
+            //이벤트 오버라이딩하지 않으면 AutoUpdater에서 알아서 업데이트창 있다고 띄움
+            //그거관련 라이브러리 확인해봐야함. 디컴파일로밖에 확인이안됨..
+            //OnCheckForUpdateEvent(args); 
         }
 
         private void ButtonCheckForUpdate_Click(object sender, EventArgs e)
