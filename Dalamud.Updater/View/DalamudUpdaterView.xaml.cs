@@ -25,7 +25,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using XIVLauncher.Common.Dalamud;
-using static System.Net.Mime.MediaTypeNames;
+using static System.Net.Mime.MediaTypeNames; 
+using System.Drawing;
+using System.Windows.Threading;
+using System.Xml;
 
 namespace Dalamud.Updater.View
 {
@@ -42,9 +45,11 @@ namespace Dalamud.Updater.View
         }
 
         private string dalaVersion = "0.0.0.0";
-        public string DalaVersion {
+        public string DalaVersion
+        {
             get => dalaVersion;
-            set { 
+            set
+            {
                 dalaVersion = value;
                 OnPropertyChanged("DalaVersion");
             }
@@ -85,6 +90,67 @@ namespace Dalamud.Updater.View
         {
             InitializeComponent();
             this.DataContext = this;
+
+            InitLogging();
+            InitializeComponent();
+            InitializePIDCheck();
+            InitializeDeleteShit();
+            InitializeConfig();
+            addonDirectory = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
+            dalamudLoadingOverlay = new DalamudLoadingOverlay();
+            dalamudLoadingOverlay.OnProgressBar += setProgressBar;
+            dalamudLoadingOverlay.OnSetVisible += setVisible;
+            dalamudLoadingOverlay.OnStatusLabel += setStatus;
+            addonDirectory = new DirectoryInfo(Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, "addon"));
+            runtimeDirectory = new DirectoryInfo(Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, "runtime"));
+            assetDirectory = new DirectoryInfo(Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, "XIVLauncher", "dalamudAssets"));
+            configDirectory = new DirectoryInfo(Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName, "XIVLauncher", "pluginConfigs"));
+            SetDalamudVersion();
+            var strArgs = Environment.GetCommandLineArgs();
+            if (strArgs.Length >= 2 && strArgs[1].Equals("-startup"))
+            {
+                //this.WindowState = FormWindowState.Minimized;
+                //this.ShowInTaskbar = false;
+                if (firstHideHint)
+                {
+                    firstHideHint = false;
+                    this.notifyIcon.ShowBalloonTip(2000, "자동 실행", "백그라운드에서 자동으로 실행되었습니다.", System.Windows.Forms.ToolTipIcon.Info);
+                }
+            }
+
+            try
+            {
+                var localVersion = Assembly.GetExecutingAssembly().GetName().Version;
+                var remoteUrl = GetProperUrl(updateUrl);
+                var remoteXml = new XmlDocument();
+                remoteXml.Load(remoteUrl);
+
+                var nodes = remoteXml.SelectNodes("/item/version");
+                if (nodes == null) throw new NullReferenceException("/item/version 노드 없음");
+
+                foreach (XmlNode child in nodes)
+                {
+                    if (child.InnerText != localVersion.ToString())
+                    {
+                        AutoUpdater.Start(remoteUrl);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "버전 확인에 실패했습니다.",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
+
+            dalamudUpdater = new DalamudUpdater(addonDirectory, runtimeDirectory, assetDirectory, configDirectory)
+            {
+                Overlay = dalamudLoadingOverlay
+            };
+            dalamudUpdater.OnUpdateEvent += DalamudUpdater_OnUpdateEvent;
+
+
+
         }
 
 
@@ -202,7 +268,52 @@ namespace Dalamud.Updater.View
         #endregion
 
 
+        #region NotifyIcon
+        System.Windows.Forms.NotifyIcon notifyIcon = new System.Windows.Forms.NotifyIcon();
+        private void createNotifyIcon()
+        {
+            this.notifyIcon.BalloonTipTitle = "달라가브KR";
+            this.notifyIcon.BalloonTipText= "달라가브KR";
+            this.notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.notifyIcon.Text= "달라가브KR";
+            this.notifyIcon.Visible = true;
 
+
+
+            this.notifyIcon.Icon = Dalamud.Updater.Properties.Resources.dalamud;
+            this.notifyIcon.MouseClick += NotifyIcon_MouseClick;
+            this.notifyIcon.ContextMenuStrip = new System.Windows.Forms.ContextMenuStrip();
+            this.notifyIcon.ContextMenuStrip.Items.Add(new System.Windows.Forms.ToolStripMenuItem("메뉴",null, NotifyIcon_Menu_Clicked));
+            this.notifyIcon.ContextMenuStrip.Items.Add(new System.Windows.Forms.ToolStripMenuItem("종료",null, NotifyIcon_Close_Clicked));
+        }
+
+        private void NotifyIcon_Menu_Clicked(object sender, EventArgs e)
+        {
+            if (!(this.Visibility == Visibility.Visible)) this.Visibility = Visibility.Visible;
+            this.Activate();
+        }
+        private void NotifyIcon_Close_Clicked(object sender, EventArgs e)
+        {
+            this.isThreadRunning = false;
+            this.notifyIcon.Dispose();
+            System.Windows.Application.Current?.Shutdown();
+        }
+
+        private void NotifyIcon_MouseClick(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                if (this.WindowState == WindowState.Minimized)
+                {
+                    this.Show();
+                    this.WindowState = WindowState.Normal;
+                }
+
+                this.Activate();
+            }
+        }
+
+        #endregion
 
         private void DalamudUpdater_OnUpdateEvent(DalamudUpdater.DownloadState value)
         {
@@ -323,38 +434,36 @@ namespace Dalamud.Updater.View
                         // 한국 클라이언트 PID를 찾을 수 없는 오류 수정. 원리는 모름 2022-08-08 16:19
                         var newPidList = Process.GetProcessesByName("ffxiv_dx11").Select(x => x.Id.ToString()).ToArray();
                         var newHash = string.Join(", ", newPidList).GetHashCode();
-                        var oldPidList = this.comboBoxFFXIV.Items.Cast<object>().Select(item => item.ToString()).ToArray();
+                        var oldPidList = this.ProcessPicker.Items.Cast<object>().Select(item => item.ToString()).ToArray();
                         var oldHash = string.Join(", ", oldPidList).GetHashCode();
-                        if (oldHash != newHash && this.comboBoxFFXIV.IsHandleCreated)
+                        if (oldHash != newHash)
                         {
-                            this.comboBoxFFXIV.Invoke((MethodInvoker)delegate
-                            {
-                                // Running on the UI thread
-                                comboBoxFFXIV.Items.Clear();
-                                comboBoxFFXIV.Items.AddRange(newPidList.Cast<object>().ToArray());
-                                if (newPidList.Length > 0)
-                                {
-                                    if (!comboBoxFFXIV.DroppedDown)
-                                        this.comboBoxFFXIV.SelectedIndex = 0;
 
-                                    if (this.checkBoxAutoInject.Checked)
+                            // Running on the UI thread
+                            this.ProcessPicker.Items.Clear();
+                            //this.ProcessPicker.Items.AddRange(newPidList.Cast<object>().ToArray());
+                            newPidList.Cast<object>().ToList().ForEach(fe => this.ProcessPicker.Items.Add(fe));
+
+                            if (newPidList.Length > 0)
+                            {
+                                if (!this.ProcessPicker.IsDropDownOpen)
+                                    this.ProcessPicker.SelectedIndex = 0;
+
+                                if (this.AutoApplyCheckBox.IsChecked.GetValueOrDefault(false))
+                                {
+                                    foreach (var pidStr in newPidList)
                                     {
-                                        foreach (var pidStr in newPidList)
+                                        var pid = int.Parse(pidStr);
+                                        if (this.Inject(pid, (int)this.injectDelaySeconds * 1000))
                                         {
-                                            //Thread.Sleep((int)(this.injectDelaySeconds * 1000));
-                                            var pid = int.Parse(pidStr);
-                                            if (this.Inject(pid, (int)this.injectDelaySeconds * 1000))
-                                            {
-                                                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "자동 Inject", $"프로세스 ID : {pid}，자동적용에 성공했습니다.", ToolTipIcon.Info);
-                                            }
+                                            this.notifyIcon.ShowBalloonTip(2000, "자동 Inject", $"프로세스 ID : {pid}，자동적용에 성공했습니다.", System.Windows.Forms.ToolTipIcon.Info);
                                         }
                                     }
                                 }
-                            });
+                            }
                         }
                     }
                     catch { }
-
                     Thread.Sleep(1000);
                 }
             })
@@ -365,27 +474,23 @@ namespace Dalamud.Updater.View
         }
 
         #endregion
-
-        private void FormMain_Load(object sender, EventArgs e)
+        private void DalamudUpdaterView_Loaded(object sender, RoutedEventArgs e)
         {
+            createNotifyIcon();
             AutoUpdater.ApplicationExitEvent += AutoUpdater_ApplicationExitEvent;
 
 
             AutoUpdater.CheckForUpdateEvent += AutoUpdaterOnCheckForUpdateEvent;
             AutoUpdater.InstalledVersion = GetUpdaterVersion();
-            labelVer.Text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
+            UpdaterVersion = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
+
             CheckUpdate();
         }
 
-        private void FormMain_Disposed(object sender, EventArgs e)
-        {
-            this.isThreadRunning = false;
-        }
-
-        private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
+        private void DalamudUpdaterView_Closing(object sender, CancelEventArgs e)
         {
             e.Cancel = true;
-            this.WindowState = FormWindowState.Minimized;
+            this.WindowState = WindowState.Minimized;
             this.Hide();
             //this.FormBorderStyle = FormBorderStyle.SizableToolWindow;
             //this.ShowInTaskbar = false;
@@ -393,142 +498,19 @@ namespace Dalamud.Updater.View
             if (firstHideHint)
             {
                 firstHideHint = false;
-                this.DalamudUpdaterIcon.ShowBalloonTip(2000, "프로그램 최소화", "메뉴는 트레이아이콘에서 선택해 주세요.", ToolTipIcon.Info);
+                this.notifyIcon.ShowBalloonTip(2000, "프로그램 최소화", "메뉴는 트레이아이콘에서 선택해 주세요.", System.Windows.Forms.ToolTipIcon.Info);
             }
         }
 
-        private void DalamudUpdaterIcon_MouseClick(object sender, MouseEventArgs e)
+        private void DalamudUpdaterView_Closed(object sender, EventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
-            {
-                //if (this.WindowState == FormWindowState.Minimized)
-                //{
-                //    this.WindowState = FormWindowState.Normal;
-                //    this.FormBorderStyle = FormBorderStyle.FixedDialog;
-                //    this.ShowInTaskbar = true;
-                //}
-                if (this.WindowState == FormWindowState.Minimized)
-                {
-                    this.Show();
-                    this.WindowState = FormWindowState.Normal;
-                }
-
-                this.Activate();
-            }
-        }
-
-        private void 显示ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            //WindowState = FormWindowState.Normal;
-            if (!this.Visible) this.Visible = true;
-            this.Activate();
-        }
-
-        private void 退出ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            this.Dispose();
-            //this.Close();
-            this.DalamudUpdaterIcon.Dispose();
-            Application.Exit();
+            this.isThreadRunning = false;
         }
 
         private void AutoUpdater_ApplicationExitEvent()
         {
-            Text = @"Closing application...";
             Thread.Sleep(5000);
-            Application.Exit();
-        }
-
-
-        private void AutoUpdaterOnParseUpdateInfoEvent(ParseUpdateInfoEventArgs args)
-        {
-            dynamic json = JsonConvert.DeserializeObject(args.RemoteData);
-            args.UpdateInfo = new UpdateInfoEventArgs
-            {
-                CurrentVersion = json.version,
-                ChangelogURL = json.changelog,
-                DownloadURL = json.url,
-                Mandatory = new Mandatory
-                {
-                    Value = json.mandatory.value,
-                    UpdateMode = json.mandatory.mode,
-                    MinimumVersion = json.mandatory.minVersion
-                },
-                CheckSum = new CheckSum
-                {
-                    Value = json.checksum.value,
-                    HashingAlgorithm = json.checksum.hashingAlgorithm
-                }
-            };
-        }
-
-        private void OnCheckForUpdateEvent(UpdateInfoEventArgs args)
-        {
-            if (args.Error == null)
-            {
-                if (args.IsUpdateAvailable)
-                {
-                    DialogResult dialogResult;
-                    if (args.Mandatory.Value)
-                    {
-                        dialogResult =
-                            MessageBox.Show(
-                                $@"卫月更新器 {args.CurrentVersion} 版本可用。当前版本为 {args.InstalledVersion}。这是一个强制更新，请点击确认来更新卫月更新器。",
-                                @"更新可用",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        dialogResult =
-                            MessageBox.Show(
-                                $@"卫月更新器 {args.CurrentVersion} 版本可用。当前版本为 {args.InstalledVersion}。您想要开始更新吗？", @"更新可用",
-                                MessageBoxButtons.YesNo,
-                                MessageBoxIcon.Information);
-                    }
-
-
-                    if (dialogResult.Equals(DialogResult.Yes) || dialogResult.Equals(DialogResult.OK))
-                    {
-                        try
-                        {
-                            //You can use Download Update dialog used by AutoUpdater.NET to download the update.
-
-                            if (AutoUpdater.DownloadUpdate(args))
-                            {
-                                this.Dispose();
-                                this.DalamudUpdaterIcon.Dispose();
-                                Application.Exit();
-                            }
-                        }
-                        catch (Exception exception)
-                        {
-                            MessageBox.Show(exception.Message, exception.GetType().ToString(), MessageBoxButtons.OK,
-                                            MessageBoxIcon.Error);
-                        }
-                    }
-                }
-                else
-                {
-                    MessageBox.Show(@"没有可用更新，请稍后查看。", @"更新不可用",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            else
-            {
-                if (args.Error is WebException)
-                {
-                    MessageBox.Show(
-                        @"访问更新服务器出错，请检查您的互联网连接后重试。",
-                        @"更新检查失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                else
-                {
-                    MessageBox.Show(args.Error.Message,
-                                    args.Error.GetType().ToString(), MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
-                }
-            }
+            System.Windows.Application.Current.Shutdown();
         }
 
         private void AutoUpdaterOnCheckForUpdateEvent(UpdateInfoEventArgs args)
@@ -541,16 +523,16 @@ namespace Dalamud.Updater.View
 
         private void ButtonCheckForUpdate_Click(object sender, EventArgs e)
         {
-            if (this.comboBoxFFXIV.SelectedItem != null)
+            if (this.ProcessPicker.SelectedItem != null)
             {
-                var pid = int.Parse((string)this.comboBoxFFXIV.SelectedItem);
+                var pid = int.Parse((string)this.ProcessPicker.SelectedItem);
                 var process = Process.GetProcessById(pid);
                 if (isInjected(process))
                 {
-                    var choice = MessageBox.Show("经检测存在 ffxiv_dx11.exe 进程，更新卫月需要关闭游戏，需要帮您代劳吗？", "关闭游戏",
-                                                 MessageBoxButtons.YesNo,
-                                                 MessageBoxIcon.Information);
-                    if (choice == DialogResult.Yes)
+                    var choice = MessageBox.Show("업데이트시 파판을 종료해야합니다. 할까요?","Dalamud",
+                                                 MessageBoxButton.YesNo,
+                                                 MessageBoxImage.Information);
+                    if (choice == MessageBoxResult.Yes)
                     {
                         process.Kill();
                     }
@@ -563,14 +545,11 @@ namespace Dalamud.Updater.View
 
             CheckUpdate();
         }
-
-        private void comboBoxFFXIV_Clicked(object sender, EventArgs e) { }
-
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void OriginalDeveloperlink_Click(object sender, RoutedEventArgs e)
         {
             Process.Start("https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&inviteCode=CZtWN&from=181074&biz=ka&shareSource=5");
         }
-
+         
         private DalamudStartInfo GeneratingDalamudStartInfo(Process process, string dalamudPath, int injectDelay)
         {
             var ffxivDir = Path.GetDirectoryName(process.MainModule.FileName);
@@ -588,7 +567,7 @@ namespace Dalamud.Updater.View
                 GameVersion = gameVerStr,
                 Language = "1", //기존의 4는 중국클라이언트 전용. Dalamud 소스코드 확인 필요. 원리모름 2022-08-08 16:21
                 OptOutMbCollection = false,
-                GlobalAccelerate = this.checkBoxAcce.Checked,
+                GlobalAccelerate = this.AutoUpdateCheckBox.IsChecked.GetValueOrDefault(false),
                 WorkingDirectory = dalamudPath,
                 DelayInitializeMs = injectDelay
             };
@@ -613,21 +592,6 @@ namespace Dalamud.Updater.View
             return false;
         }
 
-        private void DetectSomeShit(Process process)
-        {
-            try
-            {
-                for (var j = 0; j < process.Modules.Count; j++)
-                {
-                    if (process.Modules[j].ModuleName == "ws2detour_x64.dll")
-                    {
-                        MessageBox.Show("检测到使用网易UU加速器进程模式,有可能注入无反应。\n请使用路由模式。", windowsTitle, MessageBoxButtons.OK);
-                    }
-                }
-            }
-            catch { }
-        }
-
         private bool Inject(int pid, int injectDelay = 0)
         {
             var process = Process.GetProcessById(pid);
@@ -644,7 +608,7 @@ namespace Dalamud.Updater.View
             Log.Information($"[Updater] dalamudUpdater.State:{dalamudUpdater.State}");
             if (dalamudUpdater.State == DalamudUpdater.DownloadState.NoIntegrity)
             {
-                if (MessageBox.Show("当前Dalamud版本可能与游戏不兼容,确定注入吗？", windowsTitle, MessageBoxButtons.YesNo) != DialogResult.Yes)
+                if (MessageBox.Show("현재 버전이 게임과 호환이 안될수있습니다. 주입합니까？", windowsTitle, MessageBoxButton.YesNo) != MessageBoxResult.Yes)
                 {
                     return false;
                 }
@@ -662,13 +626,12 @@ namespace Dalamud.Updater.View
             WindowsDalamudRunner.Inject(dalamudUpdater.Runner, process.Id, environment, DalamudLoadMethod.DllInject, dalamudStartInfo);
             return true;
         }
-
-        private void ButtonInject_Click(object sender, EventArgs e)
+        private void init_Dalamud_Click(object sender, RoutedEventArgs e)
         {
-            if (this.comboBoxFFXIV.SelectedItem != null
-             && this.comboBoxFFXIV.SelectedItem.ToString().Length > 0)
+            if (this.ProcessPicker.SelectedItem != null
+       && this.ProcessPicker.SelectedItem.ToString().Length > 0)
             {
-                var pidStr = this.comboBoxFFXIV.SelectedItem.ToString();
+                var pidStr = this.ProcessPicker.SelectedItem.ToString();
                 if (int.TryParse(pidStr, out var pid))
                 {
                     if (Inject(pid))
@@ -678,120 +641,74 @@ namespace Dalamud.Updater.View
                 }
                 else
                 {
-                    MessageBox.Show("未能解析游戏进程ID", "找不到游戏",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
+                    MessageBox.Show("게임(Process)을 찾을수 없습니다", "Not Search FFXIV",
+                                   MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("未选择游戏进程", "找不到游戏",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
+                MessageBox.Show("게임(Process)를 선택해주세요", "Not Selected FFXIV",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
             }
-        }
+        } 
 
         private void SetAutoRun()
         {
-            var strFilePath = Application.ExecutablePath;
+            var strFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             try
             {
-                SystemHelper.SetAutoRun($"\"{strFilePath}\"" + " -startup", "DalamudAutoInjector", checkBoxAutoStart.Checked);
+                SystemHelper.SetAutoRun($"\"{strFilePath}\"" + " -startup", "DalamudAutoInjector", AutoRunCheckBox.IsChecked.GetValueOrDefault(false));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void checkBoxAutoStart_CheckedChanged(object sender, EventArgs e)
         {
             SetAutoRun();
-            AddOrUpdateAppSettings("AutoStart", checkBoxAutoStart.Checked ? "true" : "false");
+            AddOrUpdateAppSettings("AutoStart", AutoRunCheckBox.IsChecked.GetValueOrDefault(false) ? "true" : "false");
         }
 
         private void checkBoxAutoInject_CheckedChanged(object sender, EventArgs e)
         {
-            AddOrUpdateAppSettings("AutoInject", checkBoxAutoInject.Checked ? "true" : "false");
+            AddOrUpdateAppSettings("AutoInject", AutoApplyCheckBox.IsChecked.GetValueOrDefault(false) ? "true" : "false");
         }
 
         private void checkBoxAcce_CheckedChanged(object sender, EventArgs e)
         {
-            AddOrUpdateAppSettings("Accelerate", checkBoxAcce.Checked ? "true" : "false");
-        }
-
-        private void delayBox_ValueChanged(object sender, EventArgs e)
-        {
-            this.injectDelaySeconds = (double)delayBox.Value;
-            AddOrUpdateAppSettings("InjectDelaySeconds", this.injectDelaySeconds.ToString());
+            AddOrUpdateAppSettings("Accelerate", AutoUpdateCheckBox.IsChecked.GetValueOrDefault(false) ? "true" : "false");
         }
 
         private void setProgressBar(int v)
         {
-            if (this.toolStripProgressBar1.Owner.InvokeRequired)
-            {
-                Action<int> actionDelegate = (x) => { toolStripProgressBar1.Value = x; };
-                this.toolStripProgressBar1.Owner.Invoke(actionDelegate, v);
-            }
-            else
-            {
-                this.toolStripProgressBar1.Value = v;
-            }
+            this.StateProgressBar.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new DispatcherOperationCallback(delegate
+                {
+                    this.StateProgressBar.Value = (double)v;
+                    return null;
+                }),null);
         }
 
         private void setStatus(string v)
         {
-            if (toolStripStatusLabel1.Owner.InvokeRequired)
+            this.StateProgerssBar_Staters.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new DispatcherOperationCallback(delegate
             {
-                Action<string> actionDelegate = (x) => { toolStripStatusLabel1.Text = x; };
-                this.toolStripStatusLabel1.Owner.Invoke(actionDelegate, v);
-            }
-            else
-            {
-                this.toolStripStatusLabel1.Text = v;
-            }
+                this.StateProgerssBar_Staters.Text=v;
+                return null;
+            }), null);
         }
 
         private void setVisible(bool v)
         {
-            if (toolStripProgressBar1.Owner.InvokeRequired)
+            this.StateGrid.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new DispatcherOperationCallback(delegate
             {
-                Action<bool> actionDelegate = (x) =>
-                {
-                    toolStripProgressBar1.Visible = x;
-                    //toolStripStatusLabel1.Visible = v; 
-                };
-                this.toolStripStatusLabel1.Owner.Invoke(actionDelegate, v);
-            }
-            else
-            {
-                toolStripProgressBar1.Visible = v;
-                //toolStripStatusLabel1.Visible = v;
-            }
+                this.StateGrid.Visibility = v ? Visibility.Visible : Visibility.Hidden;
+                return null;
+            }), null);
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         private void AutoUpdateCheckBox_Checked(object sender, RoutedEventArgs e)
         {
@@ -807,5 +724,8 @@ namespace Dalamud.Updater.View
         {
 
         }
+
+
     }
 }
+

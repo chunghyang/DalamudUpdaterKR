@@ -43,7 +43,7 @@ namespace Dalamud.Updater
             
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Form form = new FormMain();
+            //Form form = new FormMain();
             View.DalamudUpdaterView view = new View.DalamudUpdaterView();
             view.Show();
             
