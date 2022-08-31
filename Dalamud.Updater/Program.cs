@@ -43,11 +43,11 @@ namespace Dalamud.Updater
             
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Form form = new FormMain();
-            View.DalamudUpdaterView view = new View.DalamudUpdaterView();
-            view.Show();
-            
-            /*if (strArgs.Length >= 2 && strArgs[1].Equals("-startup"))
+            Form form = new FormMain();
+            //View.DalamudUpdaterView view = new View.DalamudUpdaterView();
+            //view.Show();
+
+            if (strArgs.Length >= 2 && strArgs[1].Equals("-startup"))
             {
                 form.Opacity = 0;
                 form.ShowInTaskbar = false;
@@ -55,10 +55,11 @@ namespace Dalamud.Updater
                 form.Visible = false;
                 form.Opacity = 1;
                 form.ShowInTaskbar = true;
-            } else
+            }
+            else
             {
                 form.Show();
-            }*/
+            }
 
             Application.Run();
         }
