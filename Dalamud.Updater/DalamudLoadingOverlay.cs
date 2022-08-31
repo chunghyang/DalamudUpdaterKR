@@ -22,6 +22,11 @@ namespace Dalamud.Updater
             //this.progressBar = form.toolStripProgressBar1;
             //this.statusLabel = form.toolStripStatusLabel1;
         }
+        public DalamudLoadingOverlay()
+        {
+            //this.progressBar = form.toolStripProgressBar1;
+            //this.statusLabel = form.toolStripStatusLabel1;
+        }
         public void ReportProgress(long? size, long downloaded, double? progress)
         {
             size = size ?? 0;
@@ -40,19 +45,19 @@ namespace Dalamud.Updater
             {
                 // 文本太长会一个字都不显示
                 case IDalamudLoadingOverlay.DalamudUpdateStep.Dalamud:
-                    OnStatusLabel?.Invoke("正在更新核心");
+                    OnStatusLabel?.Invoke("Core Update");
                     break;
 
                 case IDalamudLoadingOverlay.DalamudUpdateStep.Assets:
-                    OnStatusLabel?.Invoke("正在更新资源");
+                    OnStatusLabel?.Invoke("Resource Update");
                     break;
 
                 case IDalamudLoadingOverlay.DalamudUpdateStep.Runtime:
-                    OnStatusLabel?.Invoke("正在更新运行库");
+                    OnStatusLabel?.Invoke("Library Update");
                     break;
 
                 case IDalamudLoadingOverlay.DalamudUpdateStep.Unavailable:
-                    OnStatusLabel?.Invoke("暂时无法使用");
+                    OnStatusLabel?.Invoke("Update Fail");
                     break;
 
                 default:

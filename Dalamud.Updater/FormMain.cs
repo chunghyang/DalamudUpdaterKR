@@ -98,6 +98,7 @@ namespace Dalamud.Updater
         {
             try
             {
+                
                 var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
                 var settings = configFile.AppSettings.Settings;
                 if (settings[key] == null)

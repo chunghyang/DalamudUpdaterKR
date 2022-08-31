@@ -1,0 +1,108 @@
+<Window
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Dalamud.Updater.View"
+             xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" x:Class="Dalamud.Updater.View.DalamudUpdaterView"
+             mc:Ignorable="d" 
+    
+    Loaded="DalamudUpdaterView_Loaded"
+    Closing="DalamudUpdaterView_Closing"
+    Closed="DalamudUpdaterView_Closed"
+    
+    x:Name="DalamudUpdate"
+        Title="달라가브KR"
+             d:DesignHeight="450" d:DesignWidth="400">
+    <Window.Resources>
+        <ResourceDictionary Source="../Style/GlobalXamlStyle.xaml"/>
+    </Window.Resources>
+    <Window.Style>
+        <StaticResource ResourceKey="Default_Window"/>
+    </Window.Style>
+    <Grid>
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="UpdateGrid" Grid.Row="0" Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Label x:Name="VerTitle" Grid.Column="0" VerticalAlignment="Center" Content="{Binding DalaVersion}" ContentStringFormat="달라가브KR : {0}"/>
+                <CheckBox x:Name="AutoUpdateCheckBox" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="True" Checked="AutoUpdateCheckBox_Checked"/>
+                <Label Grid.Column="2"  VerticalAlignment="Center" HorizontalAlignment="Right" Content="자동 업데이트"/>
+            </Grid>
+
+            <Grid x:Name="UpdateCheckGrid" Grid.Row="1" Margin="5">
+
+                <Button Content="업데이트 확인" Style="{StaticResource Button_Defult_Style}" MinHeight="40"/>
+            </Grid>
+
+            <Grid x:Name="AutoCheckGrid" Grid.Row="2" Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <CheckBox x:Name="AutoRunCheckBox" Grid.Column="0" VerticalAlignment="Center"  HorizontalAlignment="Left" Checked="AutoRunCheckBox_Checked"/>
+                <Label Grid.Column="1" HorizontalAlignment="Left" Content="자동 실행"/>
+
+                <CheckBox x:Name="AutoApplyCheckBox" Grid.Column="2" VerticalAlignment="Center" IsChecked="True"  HorizontalAlignment="Right" Checked="AutoApplyCheckBox_Checked"  Margin="0"/>
+                <Label Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right"  Content="자동 적용"/>
+            </Grid>
+            <Grid x:Name="ComboGrid" Grid.Row="4" VerticalAlignment="Center"  Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <ComboBox x:Name="ProcessPicker" />
+
+
+            </Grid>
+            <Grid x:Name="RunGrid" Grid.Row="5" VerticalAlignment="Center" Margin="5">
+                <Button x:Name="init_Dalamud" Content="달라가브 적용" Style="{StaticResource Button_Defult_Style}" MinHeight="40" Click="init_Dalamud_Click"/>
+            </Grid>
+
+            <Grid x:Name="DVer_LinkGrid" Grid.Row="6" Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" Content="{Binding UpdaterVersion}"/>
+                <TextBlock Grid.Column="1" HorizontalAlignment="Right"><Hyperlink Click="OriginalDeveloperlink_Click">원개발자QQ</Hyperlink></TextBlock>
+
+            </Grid>
+
+            <Grid Grid.Row="7" Margin="0,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Rectangle Grid.Column="0" Height="1" MinWidth="300" Fill="Gray"/>
+            </Grid>
+
+            <Grid x:Name="StateGrid" Grid.Row="8" Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ProgressBar x:Name="StateProgressBar" MinWidth="160" MinHeight="15" Grid.Column="0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="StateProgerssBar_Staters" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

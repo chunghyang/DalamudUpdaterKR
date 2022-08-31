@@ -10,6 +10,8 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Windows;
 using Dalamud.Updater;
+using Dalamud.Updater.Controller;
+using Dalamud.Updater.Model;
 using Newtonsoft.Json;
 using Serilog;
 //using XIVLauncher.Common.PlatformAbstractions;
@@ -223,10 +225,28 @@ namespace XIVLauncher.Common.Dalamud
                 Log.Information("[DUPDATE] Using release version ({Hash})", remoteVersionInfo.AssemblyVersion);
             }
 
+            System.Diagnostics.Debug.WriteLine($"=>>> asV {remoteVersionInfo.AssemblyVersion}  ");
+
+
+
             var versionInfoJson = JsonConvert.SerializeObject(remoteVersionInfo);
 
             var addonPath = new DirectoryInfo(Path.Combine(this.addonDirectory.FullName, "Hooks"));
             var currentVersionPath = new DirectoryInfo(Path.Combine(addonPath.FullName, remoteVersionInfo.AssemblyVersion));
+
+            var oldVersionDirInfo = DirectoryController.getDirectory(new DirectoryInfo(addonPath.FullName));
+            if (oldVersionDirInfo == null) throw new Exception("에드온에 아무것도없습니다. 확인해주세요");
+
+            if (oldVersionDirInfo.FullName != currentVersionPath.FullName)
+            {
+                var versionJsonfile = FileHandler.read(oldVersionDirInfo, "version.json");
+                var property = JsonPropertyHandler.convertJson<AssemVersionJsonProperty>(versionJsonfile);
+                property.AssemblyVersion = remoteVersionInfo.AssemblyVersion;
+                JsonPropertyHandler.saveJson(property, Path.Combine(oldVersionDirInfo.FullName, "version.json"));
+                Directory.Move(oldVersionDirInfo.FullName, Path.Combine(addonPath.FullName, remoteVersionInfo.AssemblyVersion));
+            }
+
+
             var runtimePaths = new DirectoryInfo[]
             {
                 new(Path.Combine(this.runtimeDirectory.FullName, "host", "fxr", remoteVersionInfo.RuntimeVersion)),
@@ -234,7 +254,8 @@ namespace XIVLauncher.Common.Dalamud
                 new(Path.Combine(this.runtimeDirectory.FullName, "shared", "Microsoft.WindowsDesktop.App", remoteVersionInfo.RuntimeVersion)),
             };
 
-            if (!currentVersionPath.Exists || !IsIntegrity(currentVersionPath))
+
+/*            if (!currentVersionPath.Exists || !IsIntegrity(currentVersionPath))
             {
                 Log.Information("[DUPDATE] Not found, redownloading");
                 SetOverlayProgress(IDalamudLoadingOverlay.DalamudUpdateStep.Dalamud);
@@ -255,6 +276,8 @@ namespace XIVLauncher.Common.Dalamud
                     return;
                 }
             }
+*/
+
 
             if (remoteVersionInfo.RuntimeRequired || settings.DoDalamudRuntime)
             {
@@ -285,7 +308,7 @@ namespace XIVLauncher.Common.Dalamud
                     }
                 }
 
-                await DownloadAsset(this.assetDirectory).ConfigureAwait(false);
+               // await DownloadAsset(this.assetDirectory).ConfigureAwait(false);
             }
 
             try
@@ -309,7 +332,7 @@ namespace XIVLauncher.Common.Dalamud
             //    return;
             //}
 
-            WriteVersionJson(currentVersionPath, versionInfoJson);
+            //WriteVersionJson(currentVersionPath, versionInfoJson);
 
             Log.Information("[DUPDATE] All set for " + remoteVersionInfo.SupportedGameVer);
 

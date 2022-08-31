@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Serilog;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Dalamud.Updater.Controller;
 
 namespace XIVLauncher.Common.Dalamud
 {
@@ -49,68 +50,75 @@ namespace XIVLauncher.Common.Dalamud
 
             // NOTE(goat): We should use a junction instead of copying assets to a new folder. There is no C# API for junctions in .NET Framework.
 
+
+
+            var dir = DirectoryController.getDirectory(baseDir);
+            if (dir.FullName == Path.Combine(baseDir.FullName, info.Version.ToString())) return dir;
+            
+            Directory.Move(dir.FullName, Path.Combine(baseDir.FullName, info.Version.ToString()));
+
             var assetsDir = new DirectoryInfo(Path.Combine(baseDir.FullName, info.Version.ToString()));
-            var devDir = new DirectoryInfo(Path.Combine(baseDir.FullName, "dev"));
-
-            foreach (var entry in info.Assets)
-            {
-                var filePath = Path.Combine(assetsDir.FullName, entry.FileName);
-                var filePathDev = Path.Combine(devDir.FullName, entry.FileName);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-
-                try
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePathDev)!);
-                }
-                catch
-                {
-                    // ignored
-                }
-
-                var refreshFile = false;
-
-                if (File.Exists(filePath) && !string.IsNullOrEmpty(entry.Hash))
-                {
-                    try
-                    {
-                        using var file = File.OpenRead(filePath);
-                        var fileHash = sha1.ComputeHash(file);
-                        var stringHash = BitConverter.ToString(fileHash).Replace("-", "");
-                        refreshFile = stringHash != entry.Hash;
-                        Log.Verbose("[DASSET] {0} has {1}, remote {2}", entry.FileName, stringHash, entry.Hash);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "[DASSET] Could not read asset");
-                    }
-                }
-
-                if (!File.Exists(filePath) || isRefreshNeeded || refreshFile)
-                {
-                    Log.Information("[DASSET] Downloading {0} to {1}...", entry.Url, entry.FileName);
-
-                    var request = await client.GetAsync(entry.Url).ConfigureAwait(true);
-                    request.EnsureSuccessStatusCode();
-                    File.WriteAllBytes(filePath, await request.Content.ReadAsByteArrayAsync().ConfigureAwait(true));
-
-                    try
-                    {
-                        File.Copy(filePath, filePathDev, true);
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                }
-            }
+            //var devDir = new DirectoryInfo(Path.Combine(baseDir.FullName, "dev"));
 
             if (isRefreshNeeded)
                 SetLocalAssetVer(baseDir, info.Version);
+            /*   foreach (var entry in info.Assets)
+               {
+                   var filePath = Path.Combine(assetsDir.FullName, entry.FileName);
+                   var filePathDev = Path.Combine(devDir.FullName, entry.FileName);
 
-            Log.Verbose("[DASSET] Assets OK at {0}", assetsDir.FullName);
+                   Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
-            CleanUpOld(baseDir, info.Version - 1);
+                   try
+                   {
+                       Directory.CreateDirectory(Path.GetDirectoryName(filePathDev)!);
+                   }
+                   catch
+                   {
+                       // ignored
+                   }
+
+                   var refreshFile = false;
+
+                   if (File.Exists(filePath) && !string.IsNullOrEmpty(entry.Hash))
+                   {
+                       try
+                       {
+                           using var file = File.OpenRead(filePath);
+                           var fileHash = sha1.ComputeHash(file);
+                           var stringHash = BitConverter.ToString(fileHash).Replace("-", "");
+                           refreshFile = stringHash != entry.Hash;
+                           Log.Verbose("[DASSET] {0} has {1}, remote {2}", entry.FileName, stringHash, entry.Hash);
+                       }
+                       catch (Exception ex)
+                       {
+                           Log.Error(ex, "[DASSET] Could not read asset");
+                       }
+                   }
+
+                   if (!File.Exists(filePath) || isRefreshNeeded || refreshFile)
+                   {
+                       Log.Information("[DASSET] Downloading {0} to {1}...", entry.Url, entry.FileName);
+
+                       var request = await client.GetAsync(entry.Url).ConfigureAwait(true);
+                       request.EnsureSuccessStatusCode();
+                       File.WriteAllBytes(filePath, await request.Content.ReadAsByteArrayAsync().ConfigureAwait(true));
+
+                       try
+                       {
+                           File.Copy(filePath, filePathDev, true);
+                       }
+                       catch
+                       {
+                           // ignored
+                       }
+                   }
+               }*/
+
+
+            /*     Log.Verbose("[DASSET] Assets OK at {0}", assetsDir.FullName);
+
+                 CleanUpOld(baseDir, info.Version - 1);*/
 
             return assetsDir;
         }
